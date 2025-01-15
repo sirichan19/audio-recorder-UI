@@ -25,7 +25,6 @@ export default {
         };
     },
     methods: {
-
         async startRecording() {
             this.isRecording = true;
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); // Get microphone permissions
@@ -34,6 +33,7 @@ export default {
 
             recorder.ondataavailable = async (event) => {
                 console.log("Event data:", event.data);
+                this.chunks.push(event.data);
 
                 // Convert Blob to Base64
                 const base64Data = await this.blobToBase64(event.data);
@@ -41,6 +41,7 @@ export default {
                 // Construct JSON payload
                 const jsonPayload = {
                     chunk: base64Data,
+                    key: 'myAudio',
                     mimeType: event.data.type, // Include MIME type (e.g., 'audio/webm;codecs=opus')
                 };
 
@@ -55,6 +56,7 @@ export default {
         async stopRecording() {
             this.isRecording = false;
             this.audioRecorder.stop();
+            alert('Chunk saved successfully');
         },
         async mergeChunks() {
                 const response = await axios.post('https://vwawgovkn0.execute-api.eu-west-1.amazonaws.com/audio/merge');
@@ -63,19 +65,19 @@ export default {
                 alert('Audio merged successfully');
 
         },
-        async retrieveAudio() {
-            const response = await axios.get(`https://vwawgovkn0.execute-api.eu-west-1.amazonaws.com/audio/retrieve?key=${this.audioUrl}`);
-            console.log(`response : ${response}`);
-            console.log(`response.audio : ${response.audio}`);
-            const audioBlob = this.convertBase64ToBlob(response.data.audio, 'audio/mpeg');
-            console.log(`audioBlob : ${audioBlob}`);
-             // Create a Blob URL
-            const audioUrl = URL.createObjectURL(audioBlob);
+        // async retrieveAudio() {
+        //     const response = await axios.get(`https://vwawgovkn0.execute-api.eu-west-1.amazonaws.com/audio/retrieve?key=${this.audioUrl}`);
+        //     console.log(`response : ${response}`);
+        //     console.log(`response.audio : ${response.audio}`);
+        //     const audioBlob = this.convertBase64ToBlob(response.data.audio, 'audio/mpeg');
+        //     console.log(`audioBlob : ${audioBlob}`);
+        //      // Create a Blob URL
+        //     const audioUrl = URL.createObjectURL(audioBlob);
 
-            // Show audio by setting the URL
-            this.$refs.audioPlayer.src = audioUrl;
-            alert('Audio retrieved successfully');
-        },
+        //     // Show audio by setting the URL
+        //     this.$refs.audioPlayer.src = audioUrl;
+        //     alert('Audio retrieved successfully');
+        // },
         // Helper function to convert Blob to Base64
         blobToBase64(blob) {
             return new Promise((resolve, reject) => {
