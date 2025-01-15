@@ -5,6 +5,8 @@
         <button @click="stopRecording" :disabled="!isRecording">Stop Recording</button>
         <button @click="mergeChunks" :disabled="chunks.length === 0">Merge Audio</button>
         <button @click="retrieveAudio" v-if="audioUrl">Retrieve Audio</button>
+        <audio ref="audioPlayer" controls></audio>
+       <!-- <button @click="deleteAudio" v-if="audioUrl">Delete Audio</button> -->
     </div>
 
 </template>
@@ -54,13 +56,25 @@ export default {
             this.isRecording = false;
             this.audioRecorder.stop();
         },
-        async mergeAudio() {
-            await axios.post('/audio/merge');
-            alert('Audio merged successfully');
+        async mergeChunks() {
+                const response = await axios.post('https://vwawgovkn0.execute-api.eu-west-1.amazonaws.com/audio/merge');
+                this.audioUrl = response.data.key;
+                this.chunks = [];
+                alert('Audio merged successfully');
+
         },
         async retrieveAudio() {
-            await axios.get('/audio/retrieve');
-            alert('Audio retrived successfully');
+            const response = await axios.get(`https://vwawgovkn0.execute-api.eu-west-1.amazonaws.com/audio/retrieve?key=${this.audioUrl}`);
+            console.log(`response : ${response}`);
+            console.log(`response.audio : ${response.audio}`);
+            const audioBlob = this.convertBase64ToBlob(response.data.audio, 'audio/mpeg');
+            console.log(`audioBlob : ${audioBlob}`);
+             // Create a Blob URL
+            const audioUrl = URL.createObjectURL(audioBlob);
+
+            // Show audio by setting the URL
+            this.$refs.audioPlayer.src = audioUrl;
+            alert('Audio retrieved successfully');
         },
         // Helper function to convert Blob to Base64
         blobToBase64(blob) {
@@ -70,7 +84,25 @@ export default {
                 reader.onerror = reject;
                 reader.readAsDataURL(blob);
             });
+        },
+        convertBase64ToBlob(base64, contentType = '', sliceSize = 512) {
+        const byteCharacters = atob(base64); // Decode Base64
+        const byteArrays = [];
+
+        for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+            const slice = byteCharacters.slice(offset, offset + sliceSize);
+
+            const byteNumbers = new Array(slice.length);
+            for (let i = 0; i < slice.length; i++) {
+                byteNumbers[i] = slice.charCodeAt(i);
+            }
+
+            const byteArray = new Uint8Array(byteNumbers);
+            byteArrays.push(byteArray);
         }
+
+        return new Blob(byteArrays, { type: contentType });
+    },
 
     },
 };
